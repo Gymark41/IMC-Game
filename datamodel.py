@@ -1,4 +1,4 @@
-# DO NOT MODIFY!!!!! THIS FILE IS THE DEFAULT HELPER CLASSES TO BE SUED
+# DO NOT MODIFY!!!!! THIS FILE IS THE DEFAULT HELPER CLASSES TO BE USED
 import json
 from typing import Dict, List
 from json import JSONEncoder

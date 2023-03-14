@@ -17,13 +17,16 @@ class Trader:
         # Initialize the method output dict as an empty dict
         result = {}
 
-        for sym in state.listings.keys():
-            print(sym, type(state.listings[sym]), state.listings[sym])
-            local_orderbook = CombinedOrderbook(state.order_depths[sym], state.listings[sym])
-            orders = local_orderbook.vwap_buy(local_orderbook.best_sell_price + 10, 0.5, amount_cap=10)
-            result[sym] = orders
+        #
+        # for sym in state.listings.keys():
+        #     # print(sym, type(state.listings[sym]), state.listings[sym])
+        #     local_orderbook = CombinedOrderbook(state.order_depths[sym], state.listings[sym])
+        #     orders = local_orderbook.vwap_buy(local_orderbook.best_sell_price + 10, 0.5, amount_cap=10)
+        #     result[sym] = orders
 
-        # print(state.toJSON())
+        print(state.listings['BANANAS']['symbol'])
+
+        print(state.toJSON())
         return result
 
 
@@ -41,8 +44,8 @@ class CombinedOrderbook:
         self.df_buy_orders = self.df_sell_orders['price'].sort_values()
 
 
-        print(listing)
-        print(self.df_sell_orders)
+        # print(listing)
+        # print(self.df_sell_orders)
 
         self.symbol = listing['symbol']
         self.product = listing['product']
@@ -76,5 +79,5 @@ class CombinedOrderbook:
             if purchase_quantity <= 0:
                 break
 
-        print(orders)
+        # print(orders)
         return orders

@@ -4,34 +4,42 @@
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 
 from datamodel import *
+import json
 
-# order_depths = {
-# 	"PEARLS": OrderDepth(
-# 		buy_orders={10: 7, 9: 5},
-# 		sell_orders={12: -5, 13: -3}
-# 	),
-# 	"BANANAS": OrderDepth(
-# 		buy_orders={142: 3, 141: 5},
-# 		sell_orders={144: -5, 145: -8}
-# 	),
-# }
-#
-# dummy_state = TradingState(
-#     timestamp=0,
-#     listings={"PEARLS": Listing("PEARLS", "PEARLS", "SHELLS"), "BANANAS":Listing("BANANAS", "BANANAS", "SHELLS")},
-#     order_depths=order_depths)
+from ExampleTrader import Trader
+
+from types import SimpleNamespace
 
 
-
-
-
-def test_example_trader(name):
+def generate_states():
     # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
 
+    temp_states = []
+    f = open("tradestate.txt", "r")
+    lines = f.readlines()
+    for line in lines:
+        # print(line)
+        leading_number = 0
+        for c in line:
+            if c == '{':
+                break
+            else:
+                leading_number += 1
+
+        x = json.loads(line[leading_number:])
+        test_state = TradingState(**x)
+        # print(test_state)
+        temp_states.append(test_state)
+    return temp_states
+
+def main():
+    states = generate_states()
+    myTrader = Trader()
+    for state in states:
+        myTrader.run(state)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    test_example_trader('PyCharm')
+    main()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

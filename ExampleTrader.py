@@ -17,16 +17,22 @@ class Trader:
         # Initialize the method output dict as an empty dict
         result = {}
 
+
+        for sym in state.listings.keys():
+            # print(sym, type(state.listings[sym]), state.listings[sym])
+
+            local_orderbook = CombinedOrderbook(state.order_depths[sym], state.listings[sym])
+            if local_orderbook.best_sell_price:
+                # orders = local_orderbook.vwap_buy(local_orderbook.best_sell_price + 10, 0.3)
+                orders = local_orderbook.vwap_sell(local_orderbook.best_buy_price - 10, 0.5)
+
+                result[sym] = orders
+                print(state.timestamp, orders)
+                print(state.timestamp, local_orderbook.df_buy_orders)
+
+        # print(state.listings['BANANAS']['symbol'])
         #
-        # for sym in state.listings.keys():
-        #     # print(sym, type(state.listings[sym]), state.listings[sym])
-        #     local_orderbook = CombinedOrderbook(state.order_depths[sym], state.listings[sym])
-        #     orders = local_orderbook.vwap_buy(local_orderbook.best_sell_price + 10, 0.5, amount_cap=10)
-        #     result[sym] = orders
-
-        print(state.listings['BANANAS']['symbol'])
-
-        print(state.toJSON())
+        # print(state.toJSON())
         return result
 
 
@@ -34,20 +40,22 @@ class CombinedOrderbook:
     """A combination of the orderbook depth for each listing. Allows us to implement custom methods"""
 
     def __init__(self, order_depth: OrderDepth, listing: Listing):
-        self.df_buy_orders = pd.DataFrame(order_depth.buy_orders, columns=['price', 'amount'])
-        self.df_sell_orders = pd.DataFrame(order_depth.sell_orders, columns=['price', 'amount'])
+        # print(order_depth)
+        self.df_buy_orders = pd.DataFrame(order_depth.buy_orders.items(), columns=['price', 'amount'])
+        self.df_sell_orders = pd.DataFrame(order_depth.sell_orders.items(), columns=['price', 'amount'])
 
         self.df_buy_orders["price"] = self.df_buy_orders['price'].astype(int)
         self.df_sell_orders["price"] = self.df_sell_orders['price'].astype(int)
 
-        self.df_buy_orders = self.df_buy_orders['price'].sort_values()
-        self.df_buy_orders = self.df_sell_orders['price'].sort_values()
+        self.df_buy_orders = self.df_buy_orders.sort_values(by=['price'])
+        self.df_sell_orders = self.df_sell_orders.sort_values(by=['price'])
 
 
         # print(listing)
         # print(self.df_sell_orders)
 
         self.symbol = listing['symbol']
+        # print(listing)
         self.product = listing['product']
 
         self.best_sell_price = None
@@ -55,23 +63,37 @@ class CombinedOrderbook:
         self._calculate_buy_sell()
 
     def _calculate_buy_sell(self):
-        if not self.best_buy_price:
+        # print(self.df_buy_orders)
+        if not self.best_buy_price and len(self.df_buy_orders) > 0:
             self.best_buy_price = self.df_buy_orders['price'].max()
-        if not self.best_sell_price:
+        if not self.best_sell_price and len(self.df_buy_orders) > 0:
             self.best_sell_price = self.df_sell_orders['price'].min()
-
 
     def vwap_buy(self, price_range: int, percentage: float, amount_cap=None) -> List[Order]:
         """Creates a Volume Weight Average Price Purchase, returns a dict of what we want to fulfill"""
         df_sell_order_within_price = self.df_sell_orders[self.df_sell_orders.price <= price_range]
-        total_amount = df_sell_order_within_price.amount.sum()
-        purchase_quantity = math.ceil(total_amount * percentage) if not amount_cap else min(
-            math.ceil(total_amount * percentage), amount_cap)
+        total_amount = abs(df_sell_order_within_price.amount.sum())
         df_sorted = df_sell_order_within_price.sort_values('price')
 
+        return self._vwap_combined(df_sorted, total_amount, percentage, amount_cap)
+
+    def vwap_sell(self, price_range: int, percentage: float, amount_cap=None) -> List[Order]:
+        """Creates a Volume Weight Average Price Purchase, returns a dict of what we want to fulfill"""
+        df_buy_order_within_price = self.df_buy_orders[self.df_buy_orders.price >= price_range]
+        total_amount = abs(df_buy_order_within_price.amount.sum())
+        df_sorted = df_buy_order_within_price.sort_values(by=['price'], ascending=False)
+
+        return self._vwap_combined(df_sorted, total_amount, percentage, amount_cap)
+
+    def _vwap_combined(self, df_sorted,  total_amount, percentage:float, amount_cap=None):
+
+        purchase_quantity = math.ceil(total_amount * percentage) if not amount_cap else min(
+            math.ceil(total_amount * percentage), amount_cap)
+
         orders = []
-        for row in df_sorted.iterrows():
-            purchase_on_row_amount = min(row['amount'], purchase_quantity)
+
+        for index, row in df_sorted.iterrows():
+            purchase_on_row_amount = min(abs(row['amount']), abs(purchase_quantity))
             purchase_order = Order(self.symbol, row.price, purchase_on_row_amount)
             orders.append(purchase_order)
             purchase_quantity -= purchase_on_row_amount

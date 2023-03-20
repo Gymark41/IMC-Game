@@ -29,6 +29,41 @@ def generate_states():
         x = json.loads(line[leading_number:])
         test_state = TradingState(**x)
         # print(test_state)
+
+        # new_dict_listings = {}
+        # for key in test_state.listings.keys():
+        #     listings = test_state.listings[key]
+        #     new_dict_listings[key] = Listing(**listings)
+        #
+        # test_state.listings = new_dict_listings
+        # print("start:", test_state.order_depths)
+        for key in test_state.order_depths.keys():
+            order_depths = test_state.order_depths[key]
+            # print(order_depths)
+            new_order_depths = OrderDepth()
+            new_order_depths.buy_orders = order_depths['buy_orders']
+            new_order_depths.sell_orders = order_depths['sell_orders']
+            # print(new_order_depths.buy_orders)
+            test_state.order_depths[key] = new_order_depths
+
+        # print("final: ", test_state.order_depths['BANANAS'].buy_orders)
+
+        new_dict_own_trades = {}
+        for key in test_state.own_trades.keys():
+            own_trades = test_state.own_trades[key]
+            new_list_for_own_trades = []
+            for trade in own_trades:
+                new_list_for_own_trades.append(Trade(**trade))
+        test_state.own_trades = new_dict_own_trades
+
+        new_dict_market_trades = {}
+        for key in test_state.market_trades.keys():
+            market_trades = test_state.market_trades[key]
+            new_list_for_market_trades = []
+            for trade in market_trades:
+                new_list_for_market_trades.append(Trade(**trade))
+        test_state.market_trades = new_dict_market_trades
+
         temp_states.append(test_state)
     return temp_states
 
